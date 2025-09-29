@@ -1,10 +1,10 @@
 plugins {
     kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.2.0"
     `java-library`
 }
 
-val reverseDomain = "com.thysmesi"
-group = reverseDomain
+group = "com.thysmesi"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -12,7 +12,8 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     testImplementation(kotlin("test"))
 }
