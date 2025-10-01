@@ -1,16 +1,13 @@
 package com.thysmesi.service
 
 import com.thysmesi.PisteId
+import com.thysmesi.PisteServiceType
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 
-interface PisteService<Serverbound, Clientbound> {
+interface PisteService<Serverbound : Any, Clientbound : Any> {
     val id: PisteId
+    val type: PisteServiceType
 
-    val title: String
-    val description: String
+    val serverboundSerializer: KSerializer<Serverbound>
+    val clientboundSerializer: KSerializer<Clientbound>
 }
-
-inline val <reified Serverbound> PisteService<Serverbound, *>.serverboundSerializer: KSerializer<Serverbound> get() = serializer<Serverbound>()
-inline val <reified Clientbound> PisteService<*, Clientbound>.clientboundSerializer: KSerializer<Clientbound> get() = serializer<Clientbound>()

@@ -1,17 +1,23 @@
 package com.thysmesi
 
-enum class PisteError(val value: UShort) {
-    UNHANDLED_ERROR(0x00u),
-    DECODING_FAILED(0x01u),
-    INVALID_ACTION(0x02u),
-    INVALID_FRAME(0x03u),
-    INVALID_FRAME_TYPE(0x04u),
-    UNSUPPORTED_SERVICE(0x05u),
-    CHANNEL_CLOSED(0x06u)
-    ;
+sealed class PisteError(val value: UShort): Exception() {
+    data object InternalServerError: PisteError(0x00u)
+    data object DecodingFailed: PisteError(0x01u)
+    data object UnsupportedService: PisteError(0x02u)
+    data object ChannelClosed: PisteError(0x03u)
+    data object UnsupportedFrameType: PisteError(0x05u)
+
     companion object {
-        fun from(value: UShort): PisteError? {
-            return PisteError.entries.find { it.value == value }
+        private val map by lazy {
+            mapOf(
+                InternalServerError.value to InternalServerError,
+                DecodingFailed.value to DecodingFailed,
+                UnsupportedService.value to UnsupportedService,
+                ChannelClosed.value to ChannelClosed,
+                UnsupportedFrameType.value to UnsupportedFrameType
+            )
         }
+
+        fun from(value: UShort): PisteError? = map[value]
     }
 }

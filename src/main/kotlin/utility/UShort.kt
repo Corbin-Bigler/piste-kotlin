@@ -6,6 +6,6 @@ import java.nio.ByteOrder
 fun UShort.toByteArray(byteOrder: ByteOrder): ByteArray {
     return ByteBuffer.allocate(UShort.SIZE_BYTES)
         .order(byteOrder)
-        .putInt(this.toInt())
+        .putShort(this.toShort())
         .array()
 }

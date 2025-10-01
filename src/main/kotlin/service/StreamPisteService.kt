@@ -1,3 +1,21 @@
 package com.thysmesi.service
 
-interface StreamPisteService<Serverbound, Clientbound>: PisteService<Serverbound, Clientbound>
+import com.thysmesi.PisteId
+import com.thysmesi.PisteServiceType
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.serializer
+
+interface StreamPisteService<Serverbound : Any, Clientbound : Any>: PisteService<Serverbound, Clientbound> {
+    override val type: PisteServiceType
+        get() = PisteServiceType.STREAM
+
+    companion object {
+        inline fun <reified Serverbound : Any, reified Clientbound : Any> from(
+            id: PisteId
+        ): StreamPisteService<Serverbound, Clientbound> = object : StreamPisteService<Serverbound, Clientbound> {
+            override val id: PisteId = id
+            override val serverboundSerializer: KSerializer<Serverbound> = serializer()
+            override val clientboundSerializer: KSerializer<Clientbound> = serializer()
+        }
+    }
+}
