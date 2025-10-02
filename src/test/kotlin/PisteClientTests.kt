@@ -6,7 +6,6 @@ import com.thysmesi.server.*
 import com.thysmesi.service.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.runTest
-import java.time.Instant
 import kotlin.test.*
 
 class PisteClientTests {
