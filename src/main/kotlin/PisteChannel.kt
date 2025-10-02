@@ -1,7 +1,5 @@
 package com.thysmesi
 
-import com.thysmesi.codec.PisteCodec
-import com.thysmesi.server.PisteServer
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -36,8 +34,8 @@ class PisteChannel<Inbound, Outbound>(
 
     private val completedDeferred = CompletableDeferred<Inbound>()
     suspend fun completed(): Inbound = completedDeferred.await()
-    fun resumeCompleted(data: ByteArray, codec: PisteCodec) {
-        onCompleted(codec.decode(data, serializer))
+    fun resumeCompleted(inbound: Inbound) {
+        onCompleted(inbound)
     }
 
     suspend fun send(value: Outbound) {

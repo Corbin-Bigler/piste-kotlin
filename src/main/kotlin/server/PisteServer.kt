@@ -11,7 +11,7 @@ class PisteServer(
     handlers: List<PisteHandler<*, *>>,
     logger: Logger = Logger.shared
 ) {
-    val logger: Logger.Tagged = logger.tagged("PisteServer")
+    val logger: Logger.Tagged = logger.tagged(javaClass.simpleName)
     private val handlers: Map<PisteId, PisteHandler<*, *>>
 
     private var outbound: suspend (Outbound) -> Unit = {}
@@ -27,6 +27,14 @@ class PisteServer(
         }
 
         this.handlers = handlersDictionary
+    }
+
+    suspend fun cancelAll() {
+        for ((exchange, channel) in channels) {
+            channel.resumeClosed(PisteInternalError.Cancelled)
+            send(PisteFrame.Error(PisteError.ChannelClosed), exchange)
+        }
+        channels.clear()
     }
 
     fun onOutbound(callback: suspend (Outbound) -> Unit) {
@@ -46,7 +54,7 @@ class PisteServer(
                 is PisteFrame.OpenUpload -> handleOpenUpload(frame, exchange)
                 is PisteFrame.OpenStream -> handleOpenStream(frame, exchange)
                 is PisteFrame.Payload -> handlePayload(frame, exchange)
-                is PisteFrame.Close -> handleClose(frame, exchange)
+                is PisteFrame.Close -> handleClose(exchange)
                 is PisteFrame.SupportedServicesRequest -> handleSupportedServicesRequest(exchange)
                 is PisteFrame.Open,
                 is PisteFrame.Error,
@@ -82,7 +90,7 @@ class PisteServer(
             },
             close = {
                 if (!channels.containsKey(exchange)) return@handleRequest
-                channels.remove(exchange)
+                removeChannel(exchange)
                 sendCatching(PisteFrame.Close, exchange)
             },
             server = this
@@ -98,12 +106,12 @@ class PisteServer(
         val channel = handler.handleOpen(
             send = { response ->
                 if (!channels.containsKey(exchange)) throw PisteError.ChannelClosed
-                channels.remove(exchange)
+                removeChannel(exchange)
                 sendCatching(PisteFrame.Payload(response), exchange)
             },
             close = {
                 if (!channels.containsKey(exchange)) return@handleOpen
-                channels.remove(exchange)
+                removeChannel(exchange)
                 sendCatching(PisteFrame.Close, exchange)
             },
             codec = codec
@@ -123,7 +131,7 @@ class PisteServer(
             },
             close = {
                 if (!channels.containsKey(exchange)) return@handleOpen
-                channels.remove(exchange)
+                removeChannel(exchange)
                 sendCatching(PisteFrame.Close, exchange)
             },
             codec = codec
@@ -138,11 +146,10 @@ class PisteServer(
         channel.sendInbound(frame.payload, this)
     }
 
-    private fun handleClose(frame: PisteFrame.Close, exchange: PisteExchange) {
+    private fun handleClose(exchange: PisteExchange) {
         logger.info("Received Close frame - exchange: $exchange")
-        val channel = channels[exchange] ?: throw PisteError.ChannelClosed
-        channels.remove(exchange)
-        channel.resumeClosed(null)
+        if(channels[exchange] == null) throw PisteError.ChannelClosed
+        removeChannel(exchange)
     }
 
     private suspend fun handleSupportedServicesRequest(exchange: PisteExchange) {
@@ -169,6 +176,14 @@ class PisteServer(
         }
     }
 
+    private fun removeChannel(exchange: PisteExchange) {
+        val channel = channels[exchange]
+        if (channel != null) {
+            channel.resumeClosed(null)
+            channels.remove(exchange)
+        }
+    }
+
     private suspend fun sendError(error: PisteError, exchange: PisteExchange) {
         sendCatching(PisteFrame.Error(error), exchange)
     }
@@ -183,8 +198,6 @@ class PisteServer(
         logger.debug("Sending - frame: $frame, exchange: $exchange")
         outbound(Outbound(exchange, frame.data))
     }
-
-    data class Outbound(val exchange: PisteExchange, val frameData: ByteArray)
 
     private suspend fun <Inbound, Outbound> PisteChannel<Inbound, Outbound>.sendInbound(data: ByteArray, server: PisteServer) {
         val inbound: Inbound = server.handleDecode(data, serializer)
@@ -248,4 +261,6 @@ class PisteServer(
 
         return server.codec.encode(response, service.clientboundSerializer)
     }
+
+    data class Outbound(val exchange: PisteExchange, val frameData: ByteArray)
 }
