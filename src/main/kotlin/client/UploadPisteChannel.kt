@@ -3,7 +3,6 @@ package com.thysmesi.client
 import com.thysmesi.PisteChannel
 
 data class UploadPisteChannel<Clientbound, Serverbound>(private val channel: PisteChannel<Clientbound, Serverbound>) {
-    suspend fun opened() = channel.opened()
     suspend fun closed() = channel.closed()
     suspend fun completed() = channel.completed()
 

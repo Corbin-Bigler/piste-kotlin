@@ -4,6 +4,7 @@ import com.thysmesi.*
 import com.thysmesi.codec.PisteCodec
 import kotlinx.serialization.KSerializer
 import java.util.concurrent.ConcurrentHashMap
+import javax.xml.crypto.Data
 import kotlin.coroutines.cancellation.CancellationException
 
 class PisteServer(
@@ -49,11 +50,11 @@ class PisteServer(
 
         try {
             when (frame) {
-                is PisteFrame.RequestCall -> handleRequestCall(frame, exchange)
-                is PisteFrame.RequestDownload -> handleRequestDownload(frame, exchange)
-                is PisteFrame.OpenUpload -> handleOpenUpload(frame, exchange)
-                is PisteFrame.OpenStream -> handleOpenStream(frame, exchange)
-                is PisteFrame.Payload -> handlePayload(frame, exchange)
+                is PisteFrame.RequestCall -> handleRequestCall(frame.id, frame.payload, exchange)
+                is PisteFrame.RequestDownload -> handleRequestDownload(frame.id, frame.payload, exchange)
+                is PisteFrame.OpenUpload -> handleOpenUpload(frame.id, exchange)
+                is PisteFrame.OpenStream -> handleOpenStream(frame.id, exchange)
+                is PisteFrame.Payload -> handlePayload(frame.payload, exchange)
                 is PisteFrame.Close -> handleClose(exchange)
                 is PisteFrame.SupportedServicesRequest -> handleSupportedServicesRequest(exchange)
                 is PisteFrame.Open,
@@ -65,27 +66,27 @@ class PisteServer(
         } catch (error: PisteError) {
             sendError(error, exchange)
         } catch (error: Exception) {
-            logger.error("Internal server error - error: $error, exchange: $exchange")
+            logger.error("Internal server error - exchange: $exchange, error: $error")
             sendError(PisteError.InternalServerError, exchange)
         }
     }
 
-    private suspend fun handleRequestCall(frame: PisteFrame.RequestCall, exchange: PisteExchange) {
-        logger.info("Received Request Call frame - id: ${frame.id}, payload size: ${frame.payload.size}, exchange: $exchange")
-        val handler = handlers[frame.id] ?: throw PisteError.UnsupportedService
+    private suspend fun handleRequestCall(id: PisteId, payload: ByteArray, exchange: PisteExchange) {
+        logger.info("Received Request Call frame - id: $id, payload size: ${payload.size}, exchange: $exchange")
+        val handler = handlers[id] ?: throw PisteError.UnsupportedService
         if (handler !is CallPisteHandler) throw PisteError.UnsupportedFrameType
-        val response = handler.handleRequest(frame.payload, this)
+        val response = handler.handleRequest(payload, this)
         sendCatching(PisteFrame.Payload(response), exchange)
     }
 
-    private suspend fun handleRequestDownload(frame: PisteFrame.RequestDownload, exchange: PisteExchange) {
-        logger.info("Received Request Download frame - id: ${frame.id}, payload size: ${frame.payload.size}, exchange: $exchange")
-        val handler = handlers[frame.id] ?: throw PisteError.UnsupportedService
+    private suspend fun handleRequestDownload(id: PisteId, payload: ByteArray, exchange: PisteExchange) {
+        logger.info("Received Request Download frame - id: $id, payload size: ${payload.size}, exchange: $exchange")
+        val handler = handlers[id] ?: throw PisteError.UnsupportedService
         if (handler !is DownloadPisteHandler) throw PisteError.UnsupportedFrameType
         val channel = handler.handleRequest(
-            payload = frame.payload,
+            payload = payload,
             send = { response ->
-                if (!channels.containsKey(exchange)) throw PisteError.ChannelClosed
+                if (!channels.containsKey(exchange)) throw PisteInternalError.ChannelClosed
                 send(PisteFrame.Payload(response), exchange)
             },
             close = {
@@ -99,13 +100,13 @@ class PisteServer(
         sendCatching(PisteFrame.Open, exchange)
     }
 
-    private suspend fun handleOpenUpload(frame: PisteFrame.OpenUpload, exchange: PisteExchange) {
-        logger.info("Received Open Upload frame - id: ${frame.id}, exchange: $exchange")
-        val handler = handlers[frame.id] ?: throw PisteError.UnsupportedService
+    private suspend fun handleOpenUpload(id: PisteId, exchange: PisteExchange) {
+        logger.info("Received Open Upload frame - id: ${id}, exchange: $exchange")
+        val handler = handlers[id] ?: throw PisteError.UnsupportedService
         if (handler !is UploadPisteHandler) throw PisteError.UnsupportedFrameType
         val channel = handler.handleOpen(
             send = { response ->
-                if (!channels.containsKey(exchange)) throw PisteError.ChannelClosed
+                if (!channels.containsKey(exchange)) throw PisteInternalError.ChannelClosed
                 removeChannel(exchange)
                 sendCatching(PisteFrame.Payload(response), exchange)
             },
@@ -120,13 +121,13 @@ class PisteServer(
         sendCatching(PisteFrame.Open, exchange)
     }
 
-    private suspend fun handleOpenStream(frame: PisteFrame.OpenStream, exchange: PisteExchange) {
-        logger.info("Received Open Stream frame - id: ${frame.id}, exchange: $exchange")
-        val handler = handlers[frame.id] ?: throw PisteError.UnsupportedService
+    private suspend fun handleOpenStream(id: PisteId, exchange: PisteExchange) {
+        logger.info("Received Open Stream frame - id: $id, exchange: $exchange")
+        val handler = handlers[id] ?: throw PisteError.UnsupportedService
         if (handler !is StreamPisteHandler) throw PisteError.UnsupportedFrameType
         val channel = handler.handleOpen(
             send = { response ->
-                if (!channels.containsKey(exchange)) throw PisteError.ChannelClosed
+                if (!channels.containsKey(exchange)) throw PisteInternalError.ChannelClosed
                 send(PisteFrame.Payload(response), exchange)
             },
             close = {
@@ -140,10 +141,10 @@ class PisteServer(
         sendCatching(PisteFrame.Open, exchange)
     }
 
-    private suspend fun handlePayload(frame: PisteFrame.Payload, exchange: PisteExchange) {
-        logger.info("Received Payload frame - payload count: ${frame.payload.size}, exchange: $exchange")
+    private suspend fun handlePayload(payload: ByteArray, exchange: PisteExchange) {
+        logger.info("Received Payload frame - payload count: ${payload.size}, exchange: $exchange")
         val channel = channels[exchange] ?: throw PisteError.ChannelClosed
-        channel.sendInbound(frame.payload, this)
+        channel.sendInbound(payload, this)
     }
 
     private fun handleClose(exchange: PisteExchange) {
@@ -199,8 +200,8 @@ class PisteServer(
         outbound(Outbound(exchange, frame.data))
     }
 
-    private suspend fun <Inbound, Outbound> PisteChannel<Inbound, Outbound>.sendInbound(data: ByteArray, server: PisteServer) {
-        val inbound: Inbound = server.handleDecode(data, serializer)
+    private suspend fun <Inbound, Outbound> PisteChannel<Inbound, Outbound>.sendInbound(payload: ByteArray, server: PisteServer) {
+        val inbound: Inbound = server.handleDecode(payload, serializer)
         inboundChannel.send(inbound)
     }
 

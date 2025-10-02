@@ -20,12 +20,6 @@ class PisteChannel<Inbound, Outbound>(
     val inboundChannel = Channel<Inbound>()
     val inbound: Flow<Inbound> = inboundChannel.receiveAsFlow()
 
-    private val openedDeferred = CompletableDeferred<Unit>()
-    suspend fun opened(): Unit = openedDeferred.await()
-    fun resumeOpened() {
-        openedDeferred.complete(Unit)
-    }
-
     private val closedDeferred = CompletableDeferred<Unit>()
     suspend fun closed(): Unit = closedDeferred.await()
     fun resumeClosed(error: Exception?) {

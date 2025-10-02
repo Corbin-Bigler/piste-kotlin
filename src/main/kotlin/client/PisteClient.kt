@@ -32,6 +32,8 @@ class PisteClient(
         for (request in openRequests.values + payloadRequests.values) {
             request.completeExceptionally(PisteInternalError.Cancelled)
         }
+        openRequests.clear()
+        payloadRequests.clear()
     }
 
     fun onOutbound(callback: suspend (Outbound) -> Unit) {
@@ -46,11 +48,11 @@ class PisteClient(
 
         try {
             when (frame) {
-                is PisteFrame.Payload -> handlePayload(frame, exchange)
-                is PisteFrame.SupportedServicesResponse -> handleSupportedServicesResponse(frame)
+                is PisteFrame.Payload -> handlePayload(frame.payload, exchange)
+                is PisteFrame.SupportedServicesResponse -> handleSupportedServicesResponse(frame.services, exchange)
                 is PisteFrame.Close -> handleClose(exchange)
                 is PisteFrame.Open -> handleOpen(exchange)
-                is PisteFrame.Error -> handleError(frame, exchange)
+                is PisteFrame.Error -> handleError(frame.error, exchange)
                 is PisteFrame.SupportedServicesRequest,
                 is PisteFrame.RequestCall,
                 is PisteFrame.RequestDownload,
@@ -60,15 +62,15 @@ class PisteClient(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            logger.error("Internal client error - error: $error, exchange: $exchange")
+            logger.error("Internal client error - exchange: $exchange, error: $error")
         }
     }
 
-    private suspend fun handlePayload(frame: PisteFrame.Payload, exchange: PisteExchange) {
-        logger.info("Received Payload frame - payload count: ${frame.payload.size}, exchange: $exchange")
+    private suspend fun handlePayload(payload: ByteArray, exchange: PisteExchange) {
+        logger.info("Received Payload frame - payload count: ${payload.size}, exchange: $exchange")
         val payloadRequest = payloadRequests[exchange]
         if (payloadRequest != null) {
-            payloadRequest.complete(frame.payload)
+            payloadRequest.complete(payload)
             return
         }
 
@@ -77,10 +79,10 @@ class PisteClient(
             val (channel, upload) = channelInfo
             try {
                 if (upload) {
-                    channel.resumeCompleted(frame.payload, this)
+                    channel.resumeCompleted(payload)
                     channels.remove(exchange)
                 } else {
-                    channel.sendInbound(frame.payload, this)
+                    channel.sendInbound(payload)
                 }
             } catch (error: Exception) {
                 send(PisteFrame.Close, exchange)
@@ -105,29 +107,29 @@ class PisteClient(
             return
         }
     }
-    private fun handleError(frame: PisteFrame.Error, exchange: PisteExchange) {
-        logger.info("Received Error frame - error: ${frame.error} exchange: $exchange")
+    private fun handleError(error: PisteError, exchange: PisteExchange) {
+        logger.info("Received Error frame - error: $error exchange: $exchange")
 
         val payloadContinuation = payloadRequests[exchange]
         if (payloadContinuation != null) {
-            payloadContinuation.completeExceptionally(frame.error)
+            payloadContinuation.completeExceptionally(error)
             return
         }
 
         val openContinuation = openRequests[exchange]
         if (openContinuation != null) {
-            openContinuation.completeExceptionally(frame.error)
+            openContinuation.completeExceptionally(error)
             return
         }
 
-        logger.error("Unhandled error - error: ${frame.error}, exchange: $exchange")
+        logger.error("Unhandled error - error: $error, exchange: $exchange")
     }
 
-    private fun handleSupportedServicesResponse(frame: PisteFrame.SupportedServicesResponse) {
-        logger.info("Received Supported Services Response frame - services: ${frame.services} exchange: $exchange")
+    private fun handleSupportedServicesResponse(services: List<PisteSupportedService>, exchange: PisteExchange) {
+        logger.info("Received Supported Services Response frame - services: $services exchange: $exchange")
 
         val supportedServices = supportedServices
-        val supportedServicesMap = frame.services.associate { it.id to it.type }
+        val supportedServicesMap = services.associate { it.id to it.type }
         if (supportedServices != null && supportedServices.isActive) {
             supportedServices.complete(supportedServicesMap)
         } else {
@@ -136,29 +138,37 @@ class PisteClient(
     }
 
     suspend fun <Serverbound : Any, Clientbound : Any> call(service: CallPisteService<Serverbound, Clientbound>, request: Serverbound): Clientbound {
-        if (!isSupported(service)) {
-            throw PisteInternalError.UnsupportedService
-        }
-
+        isSupported(service)
         val exchange = nextExchange()
         val payload = codec.encode(request, service.serverboundSerializer)
-        val responseData = requestPayload(PisteFrame.RequestCall(service.id, payload), exchange)
+
+        val deferred = CompletableDeferred<ByteArray>()
+        payloadRequests[exchange] = deferred
+
+        try {
+            send(PisteFrame.RequestCall(service.id, payload), exchange)
+        } catch (error: Exception) {
+            payloadRequests.remove(exchange)
+            deferred.completeExceptionally(error)
+        }
+
+        val responseData = deferred.await()
+        payloadRequests.remove(exchange)
 
         val result = codec.decode(responseData, service.clientboundSerializer)
         return result
     }
     suspend fun <Serverbound : Any, Clientbound : Any> download(service: DownloadPisteService<Serverbound, Clientbound>, request: Serverbound): DownloadPisteChannel<Clientbound, Serverbound> {
-        if (!isSupported(service)) {
-            throw PisteInternalError.UnsupportedService
-        }
-
+        isSupported(service)
         val payload = codec.encode(request, service.serverboundSerializer)
         val exchange = nextExchange()
 
         val channel = PisteChannel<Clientbound, Serverbound>(
             serializer = service.clientboundSerializer,
             close = {
+                val (channel, _) = channels[exchange] ?: return@PisteChannel
                 channels.remove(exchange)
+                channel.resumeClosed(null)
                 send(PisteFrame.Close, exchange)
             }
         )
@@ -177,20 +187,19 @@ class PisteClient(
     }
 
     private suspend fun <Serverbound : Any, Clientbound : Any> openOutboundChannel(service: PisteService<Serverbound, Clientbound>, upload: Boolean): PisteChannel<Clientbound, Serverbound> {
-        if (!isSupported(service)) {
-            throw PisteInternalError.UnsupportedService
-        }
-
+        isSupported(service)
         val exchange = nextExchange()
 
         val channel = PisteChannel<Clientbound, Serverbound>(
             serializer = service.clientboundSerializer,
             send = { outbound ->
-                if (channels[exchange] == null) throw PisteError.ChannelClosed
+                if (channels[exchange] == null) throw PisteInternalError.ChannelClosed
                 send(PisteFrame.Payload(codec.encode(outbound, service.serverboundSerializer)), exchange)
             },
             close = {
+                val (channel, _) = channels[exchange] ?: return@PisteChannel
                 channels.remove(exchange)
+                channel.resumeClosed(null)
                 send(PisteFrame.Close, exchange)
             }
         )
@@ -212,6 +221,7 @@ class PisteClient(
             send(frame, exchange)
         } catch (error: Exception) {
             openRequests.remove(exchange)
+            channels.remove(exchange)
             deferred.completeExceptionally(error)
         }
 
@@ -220,25 +230,9 @@ class PisteClient(
         return response
     }
 
-    private suspend fun requestPayload(frame: PisteFrame, exchange: PisteExchange): ByteArray {
-        val deferred = CompletableDeferred<ByteArray>()
-        payloadRequests[exchange] = deferred
-
-        try {
-            send(frame, exchange)
-        } catch (error: Exception) {
-            payloadRequests.remove(exchange)
-            deferred.completeExceptionally(error)
-        }
-
-        val response = deferred.await()
-        payloadRequests.remove(exchange)
-        return response
-    }
-
-    private suspend fun isSupported(service: PisteService<*, *>): Boolean {
-        val type = getSupportedServices()[service.id] ?: return false
-        return type == service.type
+    private suspend fun isSupported(service: PisteService<*, *>) {
+        val type = getSupportedServices()[service.id] ?: throw PisteInternalError.UnsupportedService
+        if (type != service.type) throw PisteInternalError.IncorrectServiceType
     }
     private suspend fun getSupportedServices(): Map<PisteId, PisteServiceType> {
         val supportedServices = supportedServices
@@ -254,23 +248,16 @@ class PisteClient(
     }
     private fun nextExchange(): UInt = exchange.getAndIncrement().toUInt()
 
-    private suspend fun sendCatching(frame: PisteFrame, exchange: PisteExchange) {
-        try {
-            send(frame, exchange)
-        } catch(error: Exception) {
-            logger.error("Caught Sending - frame: $frame, exchange: $exchange, error: $error")
-        }
-    }
     private suspend fun send(frame: PisteFrame, exchange: PisteExchange) {
         logger.debug("Sending - frame: $frame, exchange: $exchange")
         outbound(Outbound(exchange, frame.data))
     }
 
-    private fun <Inbound, Outbound> PisteChannel<Inbound, Outbound>.resumeCompleted(data: ByteArray, client: PisteClient) {
+    private fun <Inbound, Outbound> PisteChannel<Inbound, Outbound>.resumeCompleted(data: ByteArray) {
         resumeCompleted(codec.decode(data, serializer))
     }
 
-    private suspend fun <Inbound, Outbound> PisteChannel<Inbound, Outbound>.sendInbound(data: ByteArray, client: PisteClient) {
+    private suspend fun <Inbound, Outbound> PisteChannel<Inbound, Outbound>.sendInbound(data: ByteArray) {
         val inbound: Inbound = codec.decode(data, serializer)
         inboundChannel.send(inbound)
     }

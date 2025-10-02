@@ -103,7 +103,6 @@ class PisteIntegrationTests {
                             }
                         }
                     } finally {
-                        println("ASDFJLK")
                     }
                 }
             }
@@ -151,7 +150,6 @@ class PisteIntegrationTests {
         val client = buildClient(listOf(handler))
 
         val streamChannel = client.stream(handler.service)
-        println(streamChannel)
         val responses = mutableListOf<String>()
 
         val job = launch {
