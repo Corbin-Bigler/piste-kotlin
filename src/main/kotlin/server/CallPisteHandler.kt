@@ -1,6 +1,7 @@
-package com.thysmesi.server
+package com.thysmesi.piste.server
 
-import com.thysmesi.service.CallPisteService
+import com.thysmesi.piste.service.CallPisteService
+import kotlinx.coroutines.CoroutineScope
 
 interface CallPisteHandler<Serverbound : Any, Clientbound : Any>: PisteHandler<Serverbound, Clientbound> {
     override val service: CallPisteService<Serverbound, Clientbound>

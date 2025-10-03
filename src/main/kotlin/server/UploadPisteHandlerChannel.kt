@@ -1,6 +1,6 @@
-package com.thysmesi.server
+package com.thysmesi.piste.server
 
-import com.thysmesi.PisteChannel
+import com.thysmesi.piste.PisteChannel
 import kotlinx.coroutines.flow.Flow
 
 data class UploadPisteHandlerChannel<Serverbound, Clientbound>(private val channel: PisteChannel<Serverbound, Clientbound>) {

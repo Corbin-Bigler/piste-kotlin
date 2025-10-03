@@ -1,4 +1,4 @@
-package com.thysmesi
+package com.thysmesi.piste
 
 enum class PisteServiceType(val value: UByte) {
     CALL(0x00u),

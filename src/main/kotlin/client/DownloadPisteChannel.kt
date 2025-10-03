@@ -1,6 +1,6 @@
-package com.thysmesi.client
+package com.thysmesi.piste.client
 
-import com.thysmesi.PisteChannel
+import com.thysmesi.piste.PisteChannel
 import kotlinx.coroutines.flow.Flow
 
 data class DownloadPisteChannel<Clientbound, Serverbound>(private val channel: PisteChannel<Clientbound, Serverbound>) {

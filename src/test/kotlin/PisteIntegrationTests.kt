@@ -1,12 +1,14 @@
-package com.thysmesi
+package com.thysmesi.piste
 
-import com.thysmesi.client.PisteClient
-import com.thysmesi.codec.JsonPisteCodec
-import com.thysmesi.server.*
-import com.thysmesi.service.CallPisteService
-import com.thysmesi.service.DownloadPisteService
-import com.thysmesi.service.StreamPisteService
-import com.thysmesi.service.UploadPisteService
+import com.thysmesi.Logger
+import com.thysmesi.piste.client.PisteClient
+import com.thysmesi.piste.codec.JsonPisteCodec
+import com.thysmesi.piste.server.*
+import com.thysmesi.piste.service.CallPisteService
+import com.thysmesi.piste.service.DownloadPisteService
+import com.thysmesi.piste.service.StreamPisteService
+import com.thysmesi.piste.service.UploadPisteService
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -59,7 +61,8 @@ class PisteIntegrationTests {
 
             override suspend fun handle(
                 request: String,
-                channel: DownloadPisteHandlerChannel<String, String>
+                channel: DownloadPisteHandlerChannel<String, String>,
+                scope: CoroutineScope
             ) {
                 launch {
                     channel.send("chunk1-$request")
@@ -93,7 +96,7 @@ class PisteIntegrationTests {
             override val service = UploadPisteService.from<String, String>(0u)
             var received = mutableListOf<String>()
 
-            override suspend fun handle(channel: UploadPisteHandlerChannel<String, String>) {
+            override suspend fun handle(channel: UploadPisteHandlerChannel<String, String>, scope: CoroutineScope) {
                 launch {
                     try {
                         channel.inbound.collect { msg ->
@@ -134,7 +137,7 @@ class PisteIntegrationTests {
             override val service = StreamPisteService.from<String, String>(0u)
             val received = mutableListOf<String>()
 
-            override suspend fun handle(channel: StreamPisteHandlerChannel<String, String>) {
+            override suspend fun handle(channel: StreamPisteHandlerChannel<String, String>, scope: CoroutineScope) {
                 launch {
                     channel.inbound.collect { msg ->
                         received.add(msg)

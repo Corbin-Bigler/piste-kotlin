@@ -4,7 +4,7 @@ plugins {
     `java-library`
 }
 
-group = "com.thysmesi"
+group = "com.thysmesi.piste"
 version = "0.1"
 
 repositories {

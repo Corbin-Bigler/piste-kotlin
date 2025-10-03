@@ -1,11 +1,14 @@
-package com.thysmesi.server
+package com.thysmesi.piste.server
 
-import com.thysmesi.*
-import com.thysmesi.codec.PisteCodec
+import com.thysmesi.Logger
+import com.thysmesi.piste.*
+import com.thysmesi.piste.codec.PisteCodec
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.KSerializer
 import java.util.concurrent.ConcurrentHashMap
 import javax.xml.crypto.Data
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.coroutines.coroutineContext
 
 class PisteServer(
     val codec: PisteCodec,
@@ -215,7 +218,7 @@ class PisteServer(
             send = { send(codec.encode(it, service.clientboundSerializer)) },
             close = close
         )
-        handle(StreamPisteHandlerChannel(channel))
+        handle(StreamPisteHandlerChannel(channel), CoroutineScope(coroutineContext))
 
         return channel
     }
@@ -230,7 +233,7 @@ class PisteServer(
             send = { send(codec.encode(it, service.clientboundSerializer)) },
             close = close
         )
-        handle(UploadPisteHandlerChannel(channel))
+        handle(UploadPisteHandlerChannel(channel), CoroutineScope(coroutineContext))
 
         return channel
     }
@@ -248,7 +251,7 @@ class PisteServer(
             close = close
         )
 
-        handle(request, DownloadPisteHandlerChannel(channel))
+        handle(request, DownloadPisteHandlerChannel(channel), CoroutineScope(coroutineContext))
 
         return channel
     }

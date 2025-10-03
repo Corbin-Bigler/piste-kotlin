@@ -1,7 +1,7 @@
-package com.thysmesi.server
+package com.thysmesi.piste.server
 
-import com.thysmesi.PisteId
-import com.thysmesi.service.PisteService
+import com.thysmesi.piste.PisteId
+import com.thysmesi.piste.service.PisteService
 
 interface PisteHandler<Serverbound : Any, Clientbound : Any> {
     val service: PisteService<Serverbound, Clientbound>

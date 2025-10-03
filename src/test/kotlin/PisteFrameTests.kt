@@ -1,4 +1,4 @@
-package com.thysmesi
+package com.thysmesi.piste
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import kotlin.test.Test

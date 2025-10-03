@@ -1,8 +1,9 @@
-package com.thysmesi.client
+package com.thysmesi.piste.client
 
-import com.thysmesi.*
-import com.thysmesi.codec.PisteCodec
-import com.thysmesi.service.*
+import com.thysmesi.Logger
+import com.thysmesi.piste.*
+import com.thysmesi.piste.codec.PisteCodec
+import com.thysmesi.piste.service.*
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger

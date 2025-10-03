@@ -1,11 +1,13 @@
-package com.thysmesi
+package com.thysmesi.piste
 
-import com.thysmesi.service.CallPisteService
-import com.thysmesi.codec.JsonPisteCodec
-import com.thysmesi.server.*
-import com.thysmesi.service.DownloadPisteService
-import com.thysmesi.service.StreamPisteService
-import com.thysmesi.service.UploadPisteService
+import com.thysmesi.Logger
+import com.thysmesi.piste.service.CallPisteService
+import com.thysmesi.piste.codec.JsonPisteCodec
+import com.thysmesi.piste.server.*
+import com.thysmesi.piste.service.DownloadPisteService
+import com.thysmesi.piste.service.StreamPisteService
+import com.thysmesi.piste.service.UploadPisteService
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -25,7 +27,8 @@ class PisteServerTests {
     ) : DownloadPisteHandler<T, V> {
         override suspend fun handle(
             request: T,
-            channel: DownloadPisteHandlerChannel<T, V>
+            channel: DownloadPisteHandlerChannel<T, V>,
+            scope: CoroutineScope
         ) {}
     }
 
@@ -34,7 +37,7 @@ class PisteServerTests {
     ) : UploadPisteHandler<T, V> {
         var capturedChannel: UploadPisteHandlerChannel<T, V>? = null
 
-        override suspend fun handle(channel: UploadPisteHandlerChannel<T, V>) {
+        override suspend fun handle(channel: UploadPisteHandlerChannel<T, V>, scope: CoroutineScope) {
             capturedChannel = channel
         }
     }
@@ -44,7 +47,7 @@ class PisteServerTests {
     ) : StreamPisteHandler<T, V> {
         var capturedChannel: StreamPisteHandlerChannel<T, V>? = null
 
-        override suspend fun handle(channel: StreamPisteHandlerChannel<T, V>) {
+        override suspend fun handle(channel: StreamPisteHandlerChannel<T, V>, scope: CoroutineScope) {
             capturedChannel = channel
         }
     }

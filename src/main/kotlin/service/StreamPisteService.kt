@@ -1,7 +1,7 @@
-package com.thysmesi.service
+package com.thysmesi.piste.service
 
-import com.thysmesi.PisteId
-import com.thysmesi.PisteServiceType
+import com.thysmesi.piste.PisteId
+import com.thysmesi.piste.PisteServiceType
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
 
@@ -10,9 +10,7 @@ interface StreamPisteService<Serverbound : Any, Clientbound : Any>: PisteService
         get() = PisteServiceType.STREAM
 
     companion object {
-        inline fun <reified Serverbound : Any, reified Clientbound : Any> from(
-            id: PisteId
-        ): StreamPisteService<Serverbound, Clientbound> = object : StreamPisteService<Serverbound, Clientbound> {
+        inline fun <reified Serverbound : Any, reified Clientbound : Any> from(id: PisteId): StreamPisteService<Serverbound, Clientbound> = object : StreamPisteService<Serverbound, Clientbound> {
             override val id: PisteId = id
             override val serverboundSerializer: KSerializer<Serverbound> = serializer()
             override val clientboundSerializer: KSerializer<Clientbound> = serializer()

@@ -1,4 +1,4 @@
-package com.thysmesi
+package com.thysmesi.piste
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel

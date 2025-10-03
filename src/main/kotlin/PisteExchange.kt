@@ -1,3 +1,3 @@
-package com.thysmesi
+package com.thysmesi.piste
 
 typealias PisteExchange = UInt

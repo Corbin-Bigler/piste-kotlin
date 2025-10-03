@@ -1,4 +1,4 @@
-package com.thysmesi
+package com.thysmesi.piste
 
 sealed class PisteInternalError: Exception() {
     data object Cancelled: PisteInternalError()

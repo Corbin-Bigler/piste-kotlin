@@ -1,9 +1,10 @@
-package com.thysmesi
+package com.thysmesi.piste
 
-import com.thysmesi.client.PisteClient
-import com.thysmesi.codec.JsonPisteCodec
-import com.thysmesi.server.*
-import com.thysmesi.service.*
+import com.thysmesi.Logger
+import com.thysmesi.piste.client.PisteClient
+import com.thysmesi.piste.codec.JsonPisteCodec
+import com.thysmesi.piste.server.*
+import com.thysmesi.piste.service.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
