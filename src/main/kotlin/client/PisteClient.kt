@@ -11,9 +11,8 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class PisteClient(
     val codec: PisteCodec,
-    logger: Logger = Logger.shared
+    val logger: Logger.Tagged = Logger.shared.tagged("PisteClient")
 ) {
-    val logger: Logger.Tagged = logger.tagged(javaClass.simpleName)
 
     private val channels: ConcurrentHashMap<PisteExchange, Pair<PisteChannel<*, *>, Boolean>> = ConcurrentHashMap()
     private var outbound: suspend (Outbound) -> Unit = { }
@@ -30,6 +29,8 @@ class PisteClient(
             channel.first.resumeClosed(PisteInternalError.Cancelled)
             send(PisteFrame.Close, exchange)
         }
+        channels.clear()
+
         for (request in openRequests.values + payloadRequests.values) {
             request.completeExceptionally(PisteInternalError.Cancelled)
         }
@@ -159,7 +160,7 @@ class PisteClient(
         val result = codec.decode(responseData, service.clientboundSerializer)
         return result
     }
-    suspend fun <Serverbound : Any, Clientbound : Any> download(service: DownloadPisteService<Serverbound, Clientbound>, request: Serverbound): DownloadPisteChannel<Clientbound, Serverbound> {
+    suspend fun <Serverbound : Any, Clientbound : Any> download(service: DownloadPisteService<Serverbound, Clientbound>, request: Serverbound): DownloadPisteChannel<Clientbound> {
         isSupported(service)
         val payload = codec.encode(request, service.serverboundSerializer)
         val exchange = nextExchange()
@@ -226,9 +227,8 @@ class PisteClient(
             deferred.completeExceptionally(error)
         }
 
-        val response = deferred.await()
+        deferred.await()
         openRequests.remove(exchange)
-        return response
     }
 
     private suspend fun isSupported(service: PisteService<*, *>) {
@@ -247,6 +247,7 @@ class PisteClient(
             return deferred.await()
         }
     }
+
     private fun nextExchange(): UInt = exchange.getAndIncrement().toUInt()
 
     private suspend fun send(frame: PisteFrame, exchange: PisteExchange) {

@@ -6,5 +6,5 @@ import kotlinx.coroutines.CoroutineScope
 interface DownloadPisteHandler<Serverbound : Any, Clientbound : Any>: PisteHandler<Serverbound, Clientbound> {
     override val service: DownloadPisteService<Serverbound, Clientbound>
 
-    suspend fun handle(request: Serverbound, channel: DownloadPisteHandlerChannel<Serverbound, Clientbound>, scope: CoroutineScope)
+    suspend fun handle(request: Serverbound, channel: DownloadPisteHandlerChannel<Clientbound>, scope: CoroutineScope)
 }

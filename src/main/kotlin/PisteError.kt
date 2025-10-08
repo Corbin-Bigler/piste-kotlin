@@ -5,7 +5,7 @@ sealed class PisteError(val value: UShort): Exception() {
     data object DecodingFailed: PisteError(0x01u)
     data object UnsupportedService: PisteError(0x02u)
     data object ChannelClosed: PisteError(0x03u)
-    data object UnsupportedFrameType: PisteError(0x05u)
+    data object UnsupportedFrameType: PisteError(0x04u)
 
     companion object {
         private val map by lazy {

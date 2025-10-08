@@ -13,9 +13,8 @@ import kotlin.coroutines.coroutineContext
 class PisteServer(
     val codec: PisteCodec,
     handlers: List<PisteHandler<*, *>>,
-    logger: Logger = Logger.shared
+    val logger: Logger.Tagged = Logger.shared.tagged("PisteServer")
 ) {
-    val logger: Logger.Tagged = logger.tagged(javaClass.simpleName)
     private val handlers: Map<PisteId, PisteHandler<*, *>>
 
     private var outbound: suspend (Outbound) -> Unit = {}

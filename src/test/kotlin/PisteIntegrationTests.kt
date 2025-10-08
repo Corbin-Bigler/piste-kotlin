@@ -61,7 +61,7 @@ class PisteIntegrationTests {
 
             override suspend fun handle(
                 request: String,
-                channel: DownloadPisteHandlerChannel<String, String>,
+                channel: DownloadPisteHandlerChannel<String>,
                 scope: CoroutineScope
             ) {
                 launch {

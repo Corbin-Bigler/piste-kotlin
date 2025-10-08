@@ -27,7 +27,7 @@ class PisteServerTests {
     ) : DownloadPisteHandler<T, V> {
         override suspend fun handle(
             request: T,
-            channel: DownloadPisteHandlerChannel<T, V>,
+            channel: DownloadPisteHandlerChannel<V>,
             scope: CoroutineScope
         ) {}
     }
