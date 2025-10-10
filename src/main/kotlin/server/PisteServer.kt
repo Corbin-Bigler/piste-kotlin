@@ -35,7 +35,7 @@ class PisteServer(
     suspend fun cancelAll() {
         for ((exchange, channel) in channels) {
             channel.resumeClosed(PisteInternalError.Cancelled)
-            send(PisteFrame.Error(PisteError.ChannelClosed), exchange)
+            sendError(PisteError.ChannelClosed, exchange)
         }
         channels.clear()
     }
@@ -74,7 +74,7 @@ class PisteServer(
     }
 
     private suspend fun handleRequestCall(id: PisteId, payload: ByteArray, exchange: PisteExchange) {
-        logger.info("Received Request Call frame - id: $id, payload size: ${payload.size}, exchange: $exchange")
+        logger.info("Received Request Call frame - id: $id, payload count: ${payload.size}, exchange: $exchange")
         val handler = handlers[id] ?: throw PisteError.UnsupportedService
         if (handler !is CallPisteHandler) throw PisteError.UnsupportedFrameType
         val response = handler.handleRequest(payload, this)
@@ -82,19 +82,19 @@ class PisteServer(
     }
 
     private suspend fun handleRequestDownload(id: PisteId, payload: ByteArray, exchange: PisteExchange) {
-        logger.info("Received Request Download frame - id: $id, payload size: ${payload.size}, exchange: $exchange")
+        logger.info("Received Request Download frame - id: $id, payload count: ${payload.size}, exchange: $exchange")
         val handler = handlers[id] ?: throw PisteError.UnsupportedService
         if (handler !is DownloadPisteHandler) throw PisteError.UnsupportedFrameType
         val channel = handler.handleRequest(
             payload = payload,
-            send = { response ->
-                if (!channels.containsKey(exchange)) throw PisteInternalError.ChannelClosed
-                send(PisteFrame.Payload(response), exchange)
-            },
             close = {
                 if (!channels.containsKey(exchange)) return@handleRequest
                 removeChannel(exchange)
                 sendCatching(PisteFrame.Close, exchange)
+            },
+            send = { response ->
+                if (!channels.containsKey(exchange)) throw PisteInternalError.ChannelClosed
+                send(PisteFrame.Payload(response), exchange)
             },
             server = this
         )
@@ -107,15 +107,15 @@ class PisteServer(
         val handler = handlers[id] ?: throw PisteError.UnsupportedService
         if (handler !is UploadPisteHandler) throw PisteError.UnsupportedFrameType
         val channel = handler.handleOpen(
-            send = { response ->
-                if (!channels.containsKey(exchange)) throw PisteInternalError.ChannelClosed
-                removeChannel(exchange)
-                sendCatching(PisteFrame.Payload(response), exchange)
-            },
             close = {
                 if (!channels.containsKey(exchange)) return@handleOpen
                 removeChannel(exchange)
                 sendCatching(PisteFrame.Close, exchange)
+            },
+            send = { response ->
+                if (!channels.containsKey(exchange)) throw PisteInternalError.ChannelClosed
+                removeChannel(exchange)
+                sendCatching(PisteFrame.Payload(response), exchange)
             },
             codec = codec
         )
@@ -167,7 +167,7 @@ class PisteServer(
 
     private suspend fun handleUnsupported(frame: PisteFrame, exchange: PisteExchange) {
         logger.info("Received Unsupported frame - type: ${frame.type} exchange: $exchange")
-        sendCatching(PisteFrame.Error(PisteError.UnsupportedFrameType), exchange)
+        sendError(PisteError.UnsupportedFrameType, exchange)
     }
 
     private fun <T> handleDecode(payload: ByteArray, serializer: KSerializer<T>): T {
@@ -208,49 +208,49 @@ class PisteServer(
     }
 
     private suspend fun <Serverbound : Any, Clientbound : Any> StreamPisteHandler<Serverbound, Clientbound>.handleOpen(
-        send: suspend (response: ByteArray) -> Unit,
         close: suspend () -> Unit,
+        send: suspend (response: ByteArray) -> Unit,
         codec: PisteCodec
     ): PisteChannel<*, *> {
         val channel = PisteChannel<Serverbound, Clientbound>(
             serializer = service.serverboundSerializer,
+            close = close,
             send = { send(codec.encode(it, service.clientboundSerializer)) },
-            close = close
         )
-        handle(StreamPisteHandlerChannel(channel), CoroutineScope(coroutineContext))
+        handle(channel, CoroutineScope(coroutineContext))
 
         return channel
     }
 
     private suspend fun <Serverbound : Any, Clientbound : Any> UploadPisteHandler<Serverbound, Clientbound>.handleOpen(
-        send: suspend (response: ByteArray) -> Unit,
         close: suspend () -> Unit,
+        send: suspend (response: ByteArray) -> Unit,
         codec: PisteCodec
     ): PisteChannel<*, *> {
         val channel = PisteChannel<Serverbound, Clientbound>(
             serializer = service.serverboundSerializer,
+            close = close,
             send = { send(codec.encode(it, service.clientboundSerializer)) },
-            close = close
         )
-        handle(UploadPisteHandlerChannel(channel), CoroutineScope(coroutineContext))
+        handle(channel, CoroutineScope(coroutineContext))
 
         return channel
     }
 
     private suspend fun <Serverbound : Any, Clientbound : Any> DownloadPisteHandler<Serverbound, Clientbound>.handleRequest(
         payload: ByteArray,
-        send: suspend (response: ByteArray) -> Unit,
         close: suspend () -> Unit,
+        send: suspend (response: ByteArray) -> Unit,
         server: PisteServer
     ): PisteChannel<*, *> {
         val request: Serverbound = server.handleDecode(payload, service.serverboundSerializer)
         val channel = PisteChannel<Serverbound, Clientbound>(
             serializer = service.serverboundSerializer,
+            close = close,
             send = { send(server.codec.encode(it, service.clientboundSerializer)) },
-            close = close
         )
 
-        handle(request, DownloadPisteHandlerChannel(channel), CoroutineScope(coroutineContext))
+        handle(request, channel, CoroutineScope(coroutineContext))
 
         return channel
     }

@@ -26,13 +26,11 @@ class PisteIntegrationTests {
     private fun buildClient(handlers: List<PisteHandler<*, *>>): PisteClient {
         val server = PisteServer(
             codec = JsonPisteCodec,
-            handlers = handlers,
-            logger = Logger.shared
+            handlers = handlers
         )
 
         val client = PisteClient(
             codec = JsonPisteCodec,
-            logger = Logger.shared
         )
 
         server.onOutbound { outbound ->

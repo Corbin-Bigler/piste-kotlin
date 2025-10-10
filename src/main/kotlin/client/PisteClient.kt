@@ -11,9 +11,8 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class PisteClient(
     val codec: PisteCodec,
-    val logger: Logger.Tagged = Logger.shared.tagged("PisteClient")
+    private val logger: Logger.Tagged = Logger.shared.tagged("PisteClient")
 ) {
-
     private val channels: ConcurrentHashMap<PisteExchange, Pair<PisteChannel<*, *>, Boolean>> = ConcurrentHashMap()
     private var outbound: suspend (Outbound) -> Unit = { }
 
@@ -36,6 +35,12 @@ class PisteClient(
         }
         openRequests.clear()
         payloadRequests.clear()
+
+        val supportedServices = supportedServices
+        if(supportedServices != null) {
+            supportedServices.completeExceptionally(PisteInternalError.Cancelled)
+            this.supportedServices = null
+        }
     }
 
     fun onOutbound(callback: suspend (Outbound) -> Unit) {
@@ -102,24 +107,21 @@ class PisteClient(
     }
     private fun handleOpen(exchange: PisteExchange) {
         logger.info("Received Open frame - exchange: $exchange")
-
-        val openRequest = openRequests[exchange]
-        if (openRequest != null) {
-            openRequest.complete(Unit)
-            return
-        }
+        openRequests[exchange]?.complete(Unit)
     }
     private fun handleError(error: PisteError, exchange: PisteExchange) {
         logger.info("Received Error frame - error: $error exchange: $exchange")
 
         val payloadContinuation = payloadRequests[exchange]
         if (payloadContinuation != null) {
+            payloadRequests.remove(exchange)
             payloadContinuation.completeExceptionally(error)
             return
         }
 
         val openContinuation = openRequests[exchange]
         if (openContinuation != null) {
+            openRequests.remove(exchange)
             openContinuation.completeExceptionally(error)
             return
         }
@@ -179,13 +181,13 @@ class PisteClient(
 
         requestOpen(PisteFrame.RequestDownload(service.id, payload), exchange)
 
-        return DownloadPisteChannel(channel)
+        return channel
     }
     suspend fun <Serverbound : Any, Clientbound : Any> upload(service: UploadPisteService<Serverbound, Clientbound>): UploadPisteChannel<Clientbound, Serverbound> {
-        return UploadPisteChannel(openOutboundChannel(service, true))
+        return openOutboundChannel(service, true)
     }
     suspend fun <Serverbound : Any, Clientbound : Any> stream(service: StreamPisteService<Serverbound, Clientbound>): StreamPisteChannel<Clientbound, Serverbound> {
-        return StreamPisteChannel(openOutboundChannel(service, false))
+        return openOutboundChannel(service, false)
     }
 
     private suspend fun <Serverbound : Any, Clientbound : Any> openOutboundChannel(service: PisteService<Serverbound, Clientbound>, upload: Boolean): PisteChannel<Clientbound, Serverbound> {
@@ -194,15 +196,15 @@ class PisteClient(
 
         val channel = PisteChannel<Clientbound, Serverbound>(
             serializer = service.clientboundSerializer,
-            send = { outbound ->
-                if (channels[exchange] == null) throw PisteInternalError.ChannelClosed
-                send(PisteFrame.Payload(codec.encode(outbound, service.serverboundSerializer)), exchange)
-            },
             close = {
                 val (channel, _) = channels[exchange] ?: return@PisteChannel
                 channels.remove(exchange)
                 channel.resumeClosed(null)
                 send(PisteFrame.Close, exchange)
+            },
+            send = { outbound ->
+                if (channels[exchange] == null) throw PisteInternalError.ChannelClosed
+                send(PisteFrame.Payload(codec.encode(outbound, service.serverboundSerializer)), exchange)
             }
         )
 

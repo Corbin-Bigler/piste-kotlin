@@ -1,5 +1,11 @@
 package com.thysmesi.piste
 
+import com.thysmesi.piste.client.DownloadPisteChannel
+import com.thysmesi.piste.client.StreamPisteChannel
+import com.thysmesi.piste.client.UploadPisteChannel
+import com.thysmesi.piste.server.DownloadPisteHandlerChannel
+import com.thysmesi.piste.server.StreamPisteHandlerChannel
+import com.thysmesi.piste.server.UploadPisteHandlerChannel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -10,35 +16,46 @@ import kotlinx.serialization.KSerializer
 
 class PisteChannel<Inbound, Outbound>(
     val serializer: KSerializer<Inbound>,
+    close: suspend () -> Unit,
     send: suspend (Outbound) -> Unit = {},
-    close: suspend () -> Unit = {}
-) {
+):
+    DownloadPisteChannel<Inbound>,
+    UploadPisteChannel<Inbound, Outbound>,
+    StreamPisteChannel<Inbound, Outbound>,
+    DownloadPisteHandlerChannel<Outbound>,
+    UploadPisteHandlerChannel<Inbound, Outbound>,
+    StreamPisteHandlerChannel<Inbound, Outbound>
+{
     private val mutex = Mutex()
     private val sendClosure = send
     private val closeClosure = close
 
     val inboundChannel = Channel<Inbound>()
-    val inbound: Flow<Inbound> = inboundChannel.receiveAsFlow()
+    override val inbound: Flow<Inbound> = inboundChannel.receiveAsFlow()
 
     private val closedDeferred = CompletableDeferred<Unit>()
-    suspend fun closed(): Unit = closedDeferred.await()
+    override suspend fun closed(): Unit = closedDeferred.await()
     fun resumeClosed(error: Exception?) {
         onClosed(error)
     }
 
     private val completedDeferred = CompletableDeferred<Inbound>()
-    suspend fun completed(): Inbound = completedDeferred.await()
+    override suspend fun completed(): Inbound = completedDeferred.await()
     fun resumeCompleted(inbound: Inbound) {
         onCompleted(inbound)
     }
 
-    suspend fun send(value: Outbound) {
+    override suspend fun complete(response: Outbound) {
+        send(response)
+    }
+
+    override suspend fun send(value: Outbound) {
         mutex.withLock {
             sendClosure(value)
         }
     }
 
-    suspend fun close() {
+    override suspend fun close() {
         onClosed(null)
         closeClosure()
     }

@@ -61,7 +61,6 @@ class PisteServerTests {
             PisteServer(
                 codec = JsonPisteCodec,
                 handlers = listOf(handler1, handler2),
-                logger = Logger.shared
             )
         }
     }
@@ -74,7 +73,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -94,7 +92,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -127,7 +124,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -153,7 +149,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(callHandler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -178,7 +173,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -201,7 +195,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -224,7 +217,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -255,7 +247,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -286,7 +277,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler1, handler2),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -313,7 +303,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { sent.add(it) }
         }
@@ -338,7 +327,6 @@ class PisteServerTests {
         val server = PisteServer(
             codec = JsonPisteCodec,
             handlers = listOf(handler),
-            logger = Logger.shared
         ).apply {
             onOutbound { outbound ->
                 val frame = PisteFrame.from(outbound.frameData)

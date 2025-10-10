@@ -13,10 +13,7 @@ class PisteClientTests {
     private val callSvc = CallPisteService.from<String, String>(0u)
 
     private suspend fun buildClient(sent: MutableList<PisteClient.Outbound> = mutableListOf(), services: List<PisteService<*, *>> = listOf()): PisteClient {
-        val client = PisteClient(
-            codec = JsonPisteCodec,
-            logger = Logger.shared
-        ).apply {
+        val client = PisteClient(JsonPisteCodec).apply {
             onOutbound { out ->
                 if(PisteFrame.from(out.frameData)?.type != PisteFrameType.SUPPORTED_SERVICES_REQUEST) {
                     sent.add(out)
