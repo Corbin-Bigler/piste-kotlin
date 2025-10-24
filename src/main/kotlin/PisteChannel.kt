@@ -1,11 +1,11 @@
-package com.thysmesi.piste
+package com.corbinbigler.piste
 
-import com.thysmesi.piste.client.DownloadPisteChannel
-import com.thysmesi.piste.client.StreamPisteChannel
-import com.thysmesi.piste.client.UploadPisteChannel
-import com.thysmesi.piste.server.DownloadPisteHandlerChannel
-import com.thysmesi.piste.server.StreamPisteHandlerChannel
-import com.thysmesi.piste.server.UploadPisteHandlerChannel
+import com.corbinbigler.piste.client.DownloadPisteChannel
+import com.corbinbigler.piste.client.StreamPisteChannel
+import com.corbinbigler.piste.client.UploadPisteChannel
+import com.corbinbigler.piste.server.DownloadPisteHandlerChannel
+import com.corbinbigler.piste.server.StreamPisteHandlerChannel
+import com.corbinbigler.piste.server.UploadPisteHandlerChannel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow

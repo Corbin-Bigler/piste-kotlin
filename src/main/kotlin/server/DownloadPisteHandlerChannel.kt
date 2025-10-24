@@ -1,6 +1,6 @@
-package com.thysmesi.piste.server
+package com.corbinbigler.piste.server
 
-import com.thysmesi.piste.PisteChannel
+import com.corbinbigler.piste.PisteChannel
 
 interface DownloadPisteHandlerChannel<Clientbound> {
     suspend fun closed()

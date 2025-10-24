@@ -1,8 +1,8 @@
-package com.thysmesi.piste.server
+package com.corbinbigler.piste.server
 
-import com.thysmesi.Logger
-import com.thysmesi.piste.*
-import com.thysmesi.piste.codec.PisteCodec
+import com.corbinbigler.Logger
+import com.corbinbigler.piste.*
+import com.corbinbigler.piste.codec.PisteCodec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.KSerializer
 import java.util.concurrent.ConcurrentHashMap

@@ -1,6 +1,6 @@
-package com.thysmesi.piste.server
+package com.corbinbigler.piste.server
 
-import com.thysmesi.piste.service.DownloadPisteService
+import com.corbinbigler.piste.service.DownloadPisteService
 import kotlinx.coroutines.CoroutineScope
 
 interface DownloadPisteHandler<Serverbound : Any, Clientbound : Any>: PisteHandler<Serverbound, Clientbound> {

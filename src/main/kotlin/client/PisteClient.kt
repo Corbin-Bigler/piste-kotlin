@@ -1,9 +1,9 @@
-package com.thysmesi.piste.client
+package com.corbinbigler.piste.client
 
-import com.thysmesi.Logger
-import com.thysmesi.piste.*
-import com.thysmesi.piste.codec.PisteCodec
-import com.thysmesi.piste.service.*
+import com.corbinbigler.Logger
+import com.corbinbigler.piste.*
+import com.corbinbigler.piste.codec.PisteCodec
+import com.corbinbigler.piste.service.*
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger

@@ -1,6 +1,6 @@
-package com.thysmesi.piste
+package com.corbinbigler.piste
 
-import com.thysmesi.piste.utility.toByteArray
+import com.corbinbigler.piste.utility.toByteArray
 import java.io.ByteArrayOutputStream
 import java.nio.ByteOrder
 

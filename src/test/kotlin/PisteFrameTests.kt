@@ -1,4 +1,4 @@
-package com.thysmesi.piste
+package com.corbinbigler.piste
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import kotlin.test.Test

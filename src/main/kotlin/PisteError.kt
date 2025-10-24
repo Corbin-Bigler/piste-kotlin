@@ -1,4 +1,4 @@
-package com.thysmesi.piste
+package com.corbinbigler.piste
 
 sealed class PisteError(val value: UShort): Exception() {
     data object InternalServerError: PisteError(0x00u)

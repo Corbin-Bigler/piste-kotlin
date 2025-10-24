@@ -1,6 +1,6 @@
-package com.thysmesi.piste.server
+package com.corbinbigler.piste.server
 
-import com.thysmesi.piste.PisteChannel
+import com.corbinbigler.piste.PisteChannel
 import kotlinx.coroutines.flow.Flow
 
 interface StreamPisteHandlerChannel<Serverbound, Clientbound> {

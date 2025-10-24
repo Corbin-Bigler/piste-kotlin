@@ -1,7 +1,7 @@
-package com.thysmesi.piste.service
+package com.corbinbigler.piste.service
 
-import com.thysmesi.piste.PisteId
-import com.thysmesi.piste.PisteServiceType
+import com.corbinbigler.piste.PisteId
+import com.corbinbigler.piste.PisteServiceType
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
 

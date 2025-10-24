@@ -1,4 +1,4 @@
-package com.thysmesi.piste.codec
+package com.corbinbigler.piste.codec
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json

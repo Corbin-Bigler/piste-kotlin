@@ -1,4 +1,4 @@
-package com.thysmesi.piste
+package com.corbinbigler.piste
 
 enum class PisteFrameType(val value: UByte) {
     REQUEST_CALL(0x00u),

@@ -4,7 +4,7 @@ plugins {
     `java-library`
 }
 
-group = "com.thysmesi.piste"
+group = "com.corbinbigler.piste"
 version = "0.1"
 
 repositories {
@@ -16,7 +16,7 @@ dependencies {
     val kotlinxCoroutineVersion = "1.10.2"
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutineVersion")
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    api("com.github.Corbin-Bigler:logger-kotlin:0.0.2")
+    implementation("com.github.corbin-bigler:logger-kotlin:main-SNAPSHOT")
 
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinxCoroutineVersion")
     testImplementation(kotlin("test"))
