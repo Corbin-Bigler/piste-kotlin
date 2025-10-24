@@ -1,6 +1,6 @@
 package com.corbinbigler.piste.client
 
-import com.corbinbigler.Logger
+import com.corbinbigler.logger.Logger
 import com.corbinbigler.piste.*
 import com.corbinbigler.piste.codec.PisteCodec
 import com.corbinbigler.piste.service.*
@@ -11,7 +11,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class PisteClient(
     val codec: PisteCodec,
-    private val logger: Logger.Tagged = Logger.shared.tagged("PisteClient")
+    private val logger: Logger = Logger.tagged("PisteClient")
 ) {
     private val channels: ConcurrentHashMap<PisteExchange, Pair<PisteChannel<*, *>, Boolean>> = ConcurrentHashMap()
     private var outbound: suspend (Outbound) -> Unit = { }

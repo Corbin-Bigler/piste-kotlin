@@ -1,6 +1,5 @@
 package com.corbinbigler.piste
 
-import com.corbinbigler.Logger
 import com.corbinbigler.piste.service.CallPisteService
 import com.corbinbigler.piste.codec.JsonPisteCodec
 import com.corbinbigler.piste.server.*

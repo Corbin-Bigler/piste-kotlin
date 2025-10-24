@@ -1,19 +1,18 @@
 package com.corbinbigler.piste.server
 
-import com.corbinbigler.Logger
+import com.corbinbigler.logger.Logger
 import com.corbinbigler.piste.*
 import com.corbinbigler.piste.codec.PisteCodec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.KSerializer
 import java.util.concurrent.ConcurrentHashMap
-import javax.xml.crypto.Data
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.coroutineContext
 
 class PisteServer(
     val codec: PisteCodec,
     handlers: List<PisteHandler<*, *>>,
-    val logger: Logger.Tagged = Logger.shared.tagged("PisteServer")
+    val logger: Logger = Logger.tagged("PisteServer")
 ) {
     private val handlers: Map<PisteId, PisteHandler<*, *>>
 
