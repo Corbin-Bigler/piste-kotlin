@@ -16,7 +16,7 @@ dependencies {
     val kotlinxCoroutineVersion = "1.10.2"
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutineVersion")
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    implementation("com.github.corbin-bigler:logger-kotlin:main-SNAPSHOT")
+    api("com.github.corbin-bigler:logger-kotlin:main-SNAPSHOT")
 
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinxCoroutineVersion")
     testImplementation(kotlin("test"))
